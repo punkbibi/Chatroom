@@ -1,0 +1,8 @@
+[flake8]
+exclude =
+    .git,
+    __pycache__,
+    forwarding_rul.sh
+
+extend-ignore = E203, E501
+max-complexity = 10
