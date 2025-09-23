@@ -2,7 +2,10 @@
 exclude =
     .git,
     __pycache__,
-    forwarding_rul.sh
+    forwarding_url.sh,
+    venv/,
+    .github/
 
 extend-ignore = E203, E501
 max-complexity = 10
+max-line-length = 130 
