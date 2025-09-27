@@ -6,6 +6,6 @@ exclude =
     venv/,
     .github/
 
-extend-ignore = E203, E501
+extend-ignore = E203, E501, E265
 max-complexity = 10
 max-line-length = 130 

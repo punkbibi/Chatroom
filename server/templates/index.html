@@ -1,68 +1,128 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CHATROOM</title>
-    <!-- Bootstrap for minimal styling (optional but makes it cleaner) -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js" integrity="sha512-q/dWJ3kcmjBLU4Qc47E4A9kTB4m3wuTY7vkFJDTZKjTs8jhyGQnaUrxa0Ytd0ssMZhbNua9hE+E7Qv1j+DyZwA==" crossorigin="anonymous"></script>
+  <meta charset="UTF-8">
+  <title>Chat App</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.socket.io/4.6.1/socket.io.min.js"></script>
+  <style>
+    body { background-color: #f8f9fa; }
+    #chatSection { display: none; }
+    #messages { height: 300px; overflow-y: auto; border: 1px solid #ccc; padding: 10px; margin-bottom: 10px; background: #fff; }
+    .msg { margin-bottom: 5px; }
+    .msg strong { color: #007bff; }
+    .system { font-style: italic; color: #888; }
+  </style>
 </head>
 <body class="container py-4">
 
-    <h1 class="text-center mb-4">Welcome to the Chatroom</h1>
+  <!-- Login -->
+  <div id="loginSection" class="text-center">
+    <h2>Enter Chat</h2>
+    <input type="text" id="usernameInput" class="form-control mb-2" placeholder="Enter your username">
+    <button id="loginBtn" class="btn btn-primary">Join</button>
+  </div>
 
-    <!-- Chat messages area -->
-    <div id="messages" class="border rounded p-3 mb-3" style="height: 300px; overflow-y: auto; background-color: #f8f9fa;">
-        <!-- Messages will be appended here -->
+  <!-- Chat -->
+  <div id="chatSection">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h3>Chat Room</h3>
+      <button id="logoutBtn" class="btn btn-danger btn-sm">Logout</button>
     </div>
-
-    <!-- Input and send button -->
+    <div id="messages"></div>
     <div class="input-group">
-        <input id="messageInput" type="text" class="form-control" placeholder="Type a message...">
-        <button id="sendBtn" class="btn btn-primary">Send</button>
+      <input type="text" id="messageInput" class="form-control" placeholder="Type a message...">
+      <button id="sendBtn" class="btn btn-success">Send</button>
     </div>
+  </div>
 
-    <!-- Client-side logic -->
-    <script>
-        var socket = io();
+  <script>
+    const socket = io();
+    let username = localStorage.getItem("username");
 
-        // Show connection info in console
-        socket.on('connect', function() {
-            console.log('Connected to server');
-        });
+    const loginSection = document.getElementById("loginSection");
+    const chatSection = document.getElementById("chatSection");
+    const messagesDiv = document.getElementById("messages");
 
-        socket.on('disconnect', function() {
-            console.log('Disconnected from server');
-        });
+    // Display stored history
+    function loadHistory() {
+      const history = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+      messagesDiv.innerHTML = "";
+      history.forEach(msg => addMessage(msg, msg.type));
+    }
 
-        // Listen for messages from server
-        socket.on('message', function(msg) {
-            let messagesDiv = document.getElementById("messages");
-            let newMsg = document.createElement("div");
-            newMsg.textContent = msg;
-            messagesDiv.appendChild(newMsg);
+    function saveMessage(msg, type="chat") {
+      let history = JSON.parse(localStorage.getItem("chatHistory") || "[]");
+      history.push({ ...msg, type });
+      localStorage.setItem("chatHistory", JSON.stringify(history));
+    }
 
-            // Auto-scroll to bottom
-            messagesDiv.scrollTop = messagesDiv.scrollHeight;
-        });
+    function addMessage(msg, type="chat") {
+      const div = document.createElement("div");
+      div.classList.add("msg");
+      if (type === "system") {
+        div.classList.add("system");
+        div.textContent = msg.text;
+      } else {
+        div.innerHTML = `<strong>${msg.user}:</strong> ${msg.text}`;
+      }
+      messagesDiv.appendChild(div);
+      messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
 
-        // Send message on button click
-        document.getElementById("sendBtn").onclick = function() {
-            let input = document.getElementById("messageInput");
-            let msg = input.value.trim();
-            if (msg !== "") {
-                socket.emit("message", msg);
-                input.value = "";
-            }
-        };
+    // Login button
+    document.getElementById("loginBtn").onclick = () => {
+      const input = document.getElementById("usernameInput");
+      if (input.value.trim()) {
+        username = input.value.trim();
+        localStorage.setItem("username", username);
+        socket.emit("join", { user: username });
+        loginSection.style.display = "none";
+        chatSection.style.display = "block";
+        loadHistory();
+      }
+    };
 
-        // Also send message when pressing Enter
-        document.getElementById("messageInput").addEventListener("keyup", function(event) {
-            if (event.key === "Enter") {
-                document.getElementById("sendBtn").click();
-            }
-        });
-    </script>
+    // Logout
+    document.getElementById("logoutBtn").onclick = () => {
+      localStorage.removeItem("username");
+      localStorage.removeItem("chatHistory");
+      location.reload();
+    };
+
+    // Send message
+    document.getElementById("sendBtn").onclick = () => {
+      const input = document.getElementById("messageInput");
+      if (input.value.trim()) {
+        const msg = { user: username, text: input.value };
+        socket.emit("message", msg);
+        input.value = "";
+      }
+    };
+
+    // Enter key support
+    document.getElementById("messageInput").addEventListener("keypress", (e) => {
+      if (e.key === "Enter") document.getElementById("sendBtn").click();
+    });
+
+    // Socket events
+    socket.on("message", msg => {
+      addMessage(msg, "chat");
+      saveMessage(msg, "chat");
+    });
+
+    socket.on("system", msg => {
+      addMessage(msg, "system");
+      saveMessage(msg, "system");
+    });
+
+    // Auto-rejoin if username exists
+    if (username) {
+      loginSection.style.display = "none";
+      chatSection.style.display = "block";
+      socket.emit("join", { user: username });
+      loadHistory();
+    }
+  </script>
 </body>
 </html>
