@@ -12,6 +12,7 @@ socketio = SocketIO(app)
 chat_history = []  # In-memory storage for chat history
 active_users = set()  # In-memory storage for active users
 sid_to_user = {}  # Mapping of session IDs to user names
+voluntary_leaves = set()  # Track users who left voluntarily
 
 
 @app.route("/")
@@ -29,11 +30,13 @@ def handle_connect():
 def handle_disconnect():
     print("Client disconnected")
     user = sid_to_user.get(request.sid, "Unknown")  # get before removing
-    emit("user_disconnected", {"user": user}, broadcast=True)
-
-    sid_to_user.pop(request.sid, None)
-    if user in active_users:
-        active_users.discard(user)
+    if request.sid in voluntary_leaves:
+        voluntary_leaves.remove(request.sid)
+    else:
+        emit("user_disconnected", {"user": user}, broadcast=True)
+        sid_to_user.pop(request.sid, None)
+        if user in active_users:
+            active_users.discard(user)
 
     emit("active_users", list(active_users), broadcast=True)
 
@@ -71,10 +74,12 @@ def on_join(data):
 def on_leave(data):
     user = data.get("user", sid_to_user.get(request.sid, "Unknown"))
     emit("user_disconnected", {"user": user}, broadcast=True)
+    voluntary_leaves.add(request.sid)
     active_users.discard(user)
     sid_to_user.pop(request.sid, None)
     emit("active_users", list(active_users), broadcast=True)
 
 
 if __name__ == "__main__":
+
     socketio.run(app)
