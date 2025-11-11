@@ -44,14 +44,14 @@ We recommend using a virtual environment:
 ```bash
 python -m venv venv
 source venv/bin/activate       # On Windows: venv\Scripts\activate
-pip install flask flask-socketio
+pip install -r requirements.txt 
 ```
 
 (Optional for production: `pip install eventlet`)
 
 ### 3. Install and configure Ngrok
 
-You need ngrok installed to use the `run.sh` script:
+You need ngrok installed to use the `forwarding_url.sh` script:
 
 * Download ngrok from [ngrok.com](https://ngrok.com/)
 * Set up your authentication token (required to use ngrok)
@@ -60,13 +60,13 @@ You need ngrok installed to use the `run.sh` script:
 
 ## ▶️ Running the App & Public Sharing
 
-For ease of use, the provided `run.sh` script starts Flask and creates a public ngrok tunnel simultaneously.
+For ease of use, the provided `forwarding_url.sh` script starts Flask and creates a public ngrok tunnel simultaneously.
 
 ### 1. Execute the startup script
 
 ```bash
-chmod +x run.sh
-./run.sh
+chmod +x forwarding_url.sh
+./forwarding_url.sh
 ```
 
 ### 2. Share the Public URL
@@ -81,7 +81,7 @@ Anyone can use it to access your live chat application over the internet.
 Run the app locally without ngrok:
 
 ```bash
-python app.py
+flask --app server/app run --host=0.0.0.0 --port=5000
 # Access at http://localhost:5000
 ```
 
@@ -129,12 +129,4 @@ Third-year Computer Science student | QA Automation Engineer
 
 📫 Feel free to connect or contribute!
 
-```
 
-This version:
-
-- Uses proper Markdown headings and lists  
-- Clearly separates installation, running, and project details  
-- Includes info about your `run.sh` and ngrok usage  
-
-```
